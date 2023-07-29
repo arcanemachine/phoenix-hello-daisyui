@@ -21,7 +21,8 @@ ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
 FROM ${BUILDER_IMAGE} as builder
 
 # install build dependencies
-RUN apt-get update -y && apt-get install -y build-essential git \
+# custom: add 'nodejs npm' to apt-get dependencies so that npm will work
+RUN apt-get update -y && apt-get install -y build-essential git nodejs npm \
     && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
 # prepare build dir
@@ -45,11 +46,15 @@ RUN mkdir config
 COPY config/config.exs config/${MIX_ENV}.exs config/
 RUN mix deps.compile
 
-COPY priv priv
-
+# custom: copy 'lib' first so that tailwind purge will work
 COPY lib lib
 
+COPY priv priv
+
 COPY assets assets
+
+# custom: install npm dependencies
+RUN cd assets && npm install
 
 # compile assets
 RUN mix assets.deploy
